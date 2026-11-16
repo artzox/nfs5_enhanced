@@ -5,6 +5,9 @@ on:
   push:
     branches: [ release-build ]
 
+permissions:
+  contents: write
+
 jobs:
   msvc-win32:
     runs-on: windows-latest
@@ -32,3 +35,17 @@ jobs:
         with:
           name: nfs5_enhanced-msvc-${{ github.sha }}
           path: package
+
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path package/* -DestinationPath nfs5_enhanced-msvc.zip
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $short = "${{ github.sha }}".Substring(0,7)
+          $tag = "build-$short"
+          $notes = "Unofficial MSVC build of upstream master (8b7acf6) plus PR #32 (stereo fix on mirrored tracks). Includes every change merged after v1.3.0: headlight flicker fix (#13), fog fix (#23), floating scenery (#16), GT1 bumper camera (#25), anisotropy 16x default (#26), scrollbar fix (#27), relocated image base / ASLR (#28), movie upscaling (#31), Essentials V2 gameplay redirect (#21)."
+          gh release create $tag nfs5_enhanced-msvc.zip --repo ${{ github.repository }} --target ${{ github.sha }} --title "MSVC build $short (master + PR #32)" --notes $notes --prerelease
